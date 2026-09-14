@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/populationgenomics/cpg-seqera-trial-workflows/refs/heads/main/workflows/cohort_demo/nextflow_schema.json",
+  "title": "cohort_demo pipeline parameters",
+  "description": "Builds a samplesheet from a Metamist cohort and runs the Hail VDS combiner on Dataproc",
+  "type": "object",
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "fa_icon": "fas fa-terminal",
+      "description": "Define input data and where the pipeline should output results.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where the results will be saved. You have to use absolute paths to storage on Cloud infrastructure.",
+          "fa_icon": "fas fa-folder-open",
+          "default": "gs://cpg-seqera-trial-test"
+        },
+        "cohorts": {
+          "type": "string",
+          "description": "Comma-delimited list of Metamist cohort IDs to combine.",
+          "fa_icon": "fas fa-folder-open"
+        },
+        "metamist_project": {
+          "type": "string",
+          "description": "Metamist project that owns the cohort and receives the registered output analysis.",
+          "fa_icon": "fas fa-database"
+        },
+        "ar_guid": {
+          "type": "string",
+          "description": "Analysis-runner GUID used to label the Dataproc cluster/VMs for billing.",
+          "fa_icon": "fas fa-tag"
+        },
+        "expected_sg_count": {
+          "type": "integer",
+          "description": "Expected number of sequencing groups in the cohort. The samplesheet build fails if the fetched count differs.",
+          "fa_icon": "fas fa-list-ol"
+        },
+        "sequencing_type": {
+          "type": "string",
+          "default": "genome",
+          "description": "Sequencing type of the cohort's sequencing groups.",
+          "fa_icon": "fas fa-dna"
+        },
+        "input_vds": {
+          "type": "string",
+          "description": "Previous VDS to build on, optional."
+        },
+        "output_vds": {
+          "type": "string",
+          "description": "Full gs:// path for the output VDS. Defaults to <outdir>/combiner/<hash>.vds when unset."
+        },
+        "force_new": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ignore any saved combiner plan and start a fresh combine. Set false to resume an interrupted run.",
+          "fa_icon": "fas fa-redo"
+        }
+      },
+      "required": ["outdir", "cohorts", "metamist_project", "ar_guid"]
+    },
+    "combiner_options": {
+      "title": "Combiner options",
+      "type": "object",
+      "fa_icon": "fas fa-layer-group",
+      "description": "Hail VDS combiner tuning. See the Hail VariantDatasetCombiner docs.",
+      "properties": {
+        "intervals": {
+          "type": "string",
+          "description": "gs:// path to a BED (optionally gzipped) of intervals. Sets the partitioning of the gVCF import stage: one partition per interval. Read directly from GCS by the Hail job.",
+          "fa_icon": "fas fa-ruler-horizontal",
+          "default": "gs://cpg-common-main/references/hail_intervals/hg38/gnomad_v4.1_variants_balanced_intervals.bed.gz"
+        },
+        "branch_factor": {
+          "type": "integer",
+          "default": 100,
+          "description": "Number of gVCFs merged into a single intermediate VDS, and the fan-in for later VDS-to-VDS merges. Higher values mean fewer, larger tasks.",
+          "fa_icon": "fas fa-code-branch"
+        },
+        "gvcf_batch_size": {
+          "type": "integer",
+          "default": 5,
+          "description": "Number of intermediate VDSs built per combiner step. A step is the only checkpoint boundary, so lower values mean more frequent saves and less lost work on failure.",
+          "fa_icon": "fas fa-save"
+        },
+        "target_records": {
+          "type": "integer",
+          "default": 1000000,
+          "description": "Target rows per partition when repartitioning during VDS-to-VDS merges. Has no effect on the gVCF import stage, which is partitioned by 'intervals'.",
+          "fa_icon": "fas fa-th"
+        }
+      }
+    },
+    "gcp_options": {
+      "title": "GCP options",
+      "type": "object",
+      "fa_icon": "fas fa-cloud",
+      "description": "Google Cloud Platform project.",
+      "properties": {
+        "gcp_project": {
+          "type": "string",
+          "default": "seqera-trial",
+          "description": "GCP project ID to create the Dataproc cluster in.",
+          "fa_icon": "fas fa-project-diagram"
+        }
+      }
+    },
+    "dataproc_options": {
+      "title": "Dataproc options",
+      "type": "object",
+      "fa_icon": "fas fa-server",
+      "description": "Configuration for the Google Cloud Dataproc cluster and Hail.",
+      "properties": {
+        "dataproc_container": {
+          "type": "string",
+          "description": "Docker image used by the process that drives the Dataproc cluster. Needs cpg-utils and the GCP Python libraries installed.",
+          "fa_icon": "fas fa-box",
+          "default": "australia-southeast1-docker.pkg.dev/seqera-trial/images/seqera_trial:0.0.1-1"
+        },
+        "bcftools_container": {
+          "type": "string",
+          "description": "Docker image to use for bcftools. Base image + procps.",
+          "fa_icon": "fas fa-box",
+          "default": "australia-southeast1-docker.pkg.dev/seqera-trial/images/nf_bcftools:1.23.1-1"
+        },
+        "dataproc_staging_bucket": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "GCS staging bucket for Dataproc.",
+          "fa_icon": "fas fa-folder-open",
+          "default": "gs://cpg-seqera-trial-test"
+        },
+        "dataproc_temp_bucket": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "GCS temp bucket for Dataproc. Also holds the combiner plan and intermediate VDSs.",
+          "fa_icon": "fas fa-folder-open",
+          "default": "gs://cpg-seqera-trial-test"
+        },
+        "dataproc_master_type": {
+          "type": "string",
+          "default": "n1-highmem-8",
+          "description": "Machine type for the Dataproc master node, which runs the Spark driver.",
+          "fa_icon": "fas fa-microchip"
+        },
+        "dataproc_worker_type": {
+          "type": "string",
+          "default": "n1-highmem-16",
+          "description": "Machine type for both primary and secondary Dataproc workers. The autoscaling policy caps instance count, not cores, so this is the lever for total cluster capacity.",
+          "fa_icon": "fas fa-microchip"
+        },
+        "dataproc_num_workers": {
+          "type": "integer",
+          "default": 2,
+          "description": "Number of primary Dataproc worker nodes. Must sit within the autoscaling policy's workerConfig min/max.",
+          "fa_icon": "fas fa-cogs"
+        },
+        "dataproc_num_secondary_workers": {
+          "type": "integer",
+          "default": 10,
+          "description": "Initial number of secondary Dataproc workers. Must sit within the autoscaling policy's secondaryWorkerConfig min/max; the autoscaler resizes from here.",
+          "fa_icon": "fas fa-cogs"
+        },
+        "preemptible_secondary_workers": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run secondary workers as preemptible (spot) VMs. The combiner is preemption-safe; on-demand is 2-3x the cost.",
+          "fa_icon": "fas fa-bolt"
+        },
+        "dataproc_boot_disk_size_gb": {
+          "type": "integer",
+          "default": 100,
+          "description": "Per-node boot disk size in GB. Raise this if local SSDs are disabled, since Spark spills shuffle data to it.",
+          "fa_icon": "fas fa-hdd"
+        },
+        "dataproc_num_local_ssds": {
+          "type": "integer",
+          "default": 1,
+          "description": "Local NVMe SSDs per node (375 GB each) for shuffle scratch. Preemptible workers draw on the PREEMPTIBLE_LOCAL_SSD_GB regional quota.",
+          "fa_icon": "fas fa-hdd"
+        },
+        "dataproc_service_account": {
+          "type": "string",
+          "default": "nextflow-workflow-sa@seqera-trial.iam.gserviceaccount.com",
+          "description": "Service account for the cluster VMs, so they inherit dataset access rather than using the default compute SA.",
+          "fa_icon": "fas fa-user-shield"
+        },
+        "dataproc_autoscaling_policy": {
+          "type": "string",
+          "description": "Existing autoscaling policy ID or full resource URI. If set, uses this policy instead of creating one.",
+          "default": "trial-combiner-1",
+          "fa_icon": "fas fa-scroll"
+        },
+        "dataproc_max_age": {
+          "type": "integer",
+          "default": 172800,
+          "description": "Cluster auto-delete TTL in seconds. The cluster is destroyed when this expires, even mid-job.",
+          "fa_icon": "fas fa-hourglass-end"
+        },
+        "dataproc_max_idle": {
+          "type": "integer",
+          "default": 600,
+          "description": "Cluster idle-delete TTL in seconds. This is the practical cost guard.",
+          "fa_icon": "fas fa-hourglass-half"
+        }
+      }
+    }
+  },
+  "allOf": [
+    { "$ref": "#/$defs/input_output_options" },
+    { "$ref": "#/$defs/combiner_options" },
+    { "$ref": "#/$defs/gcp_options" },
+    { "$ref": "#/$defs/dataproc_options" }
+  ]
+}

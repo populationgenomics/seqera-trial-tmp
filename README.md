@@ -1,1 +1,1 @@
-# seqera-trial-tmp
+# Seqera Trial Testing

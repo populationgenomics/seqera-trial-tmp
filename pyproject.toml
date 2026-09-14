@@ -1,0 +1,30 @@
+[project]
+name = "seqera-gke-compute-env"
+version = "0.1.0"
+description = "Pulumi infrastructure for Seqera Nextflow GKE compute environment"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "metamist>=7.14.0",
+    "nf-core>=3.5.2",
+]
+
+[dependency-groups]
+dev = [
+    "pulumi>=3.225.1",
+    "pulumi-gcp>=9.14.0",
+    "pulumi-kubernetes>=4.27.0",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+# Fallback in case a black-on-save hook is what's normalising quotes.
+[tool.black]
+skip-string-normalization = true
