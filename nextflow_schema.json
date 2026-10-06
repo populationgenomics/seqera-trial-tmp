@@ -169,6 +169,12 @@
           "description": "Run secondary workers as preemptible (spot) VMs. The combiner is preemption-safe; on-demand is 2-3x the cost.",
           "fa_icon": "fas fa-bolt"
         },
+        "dataproc_internal_ip_only": {
+          "type": "boolean",
+          "default": true,
+          "description": "Launch Dataproc VMs with internal IPs only (no external IPs). Requires Private Google Access on the subnet.",
+          "fa_icon": "fas fa-network-wired"
+        },
         "dataproc_boot_disk_size_gb": {
           "type": "integer",
           "default": 100,
