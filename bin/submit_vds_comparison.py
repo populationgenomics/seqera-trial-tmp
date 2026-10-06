@@ -33,6 +33,11 @@ def parse_args():
         default=[],
         help="Cluster labels as key=value pairs for billing/cost tracking.",
     )
+    parser.add_argument(
+        "--internal-ip-only",
+        action="store_true",
+        help="Launch cluster VMs with internal IPs only (no external IPs).",
+    )
     return parser.parse_args()
 
 def main():
@@ -49,7 +54,8 @@ def main():
             temp_bucket=args.temp_bucket,
             labels=labels,
             num_secondary_workers=2,
-            preemptible_workers=False
+            preemptible_workers=False,
+            internal_ip_only=args.internal_ip_only,
     ) as cluster:
         script_uri = cluster.upload(args.script)
         _submitted_job = cluster.run_job(
