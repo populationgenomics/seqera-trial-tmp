@@ -61,6 +61,11 @@ def parse_args():
         action='store_true',
         help='Use preemptible (spot) secondary workers.',
     )
+    parser.add_argument(
+        '--internal-ip-only',
+        action='store_true',
+        help='Launch cluster VMs with internal IPs only (no external IPs).',
+    )
 
     # Combiner tuning, forwarded to the Hail script.
     parser.add_argument('--branch-factor', type=int, default=50, help='Combiner merge-tree branch factor.')
@@ -93,6 +98,7 @@ def main():
         preemptible_workers=args.preemptible_secondary_workers,
         num_local_ssds=args.num_local_ssds,
         service_account=args.service_account,
+        internal_ip_only=args.internal_ip_only,
     )
 
     # Tear the cluster down promptly if Nextflow/Seqera cancels the task (SIGTERM).

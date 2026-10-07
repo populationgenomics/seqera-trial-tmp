@@ -38,6 +38,7 @@ process COMBINER_DATAPROC {
             --target-records ${params.target_records} \\
             --gvcf-batch-size ${params.gvcf_batch_size} \\
             ${params.preemptible_secondary_workers ? '--preemptible-secondary-workers' : ''} \\
+            ${params.dataproc_internal_ip_only ? '--internal-ip-only' : ''} \\
             ${params.force_new ? '--force' : ''} \\
             --samplesheet ${samplesheet} \\
             --vds_output ${vds_output} \\
